@@ -3,49 +3,28 @@ import { createServer } from "node:http";
 import { Server } from "socket.io";
 import mongoose from "mongoose";
 import cors from "cors";
-
+import connectTOSocket from "./controllers/socketManager.js";
+import userRoutes from 
 const app = express();
-const httpServer = createServer(app);
+const server = createServer(app);
+const io = connectTOSocket(server);
 
-// middleware
 app.use(cors());
-app.use(express.json());
 
-// socket.io setup
-const io = new Server(httpServer, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
-});
+app.set("port", (process.env.PORT || 8000));
+app.use(cors());
+app.use(express.json({limit: "40kb"}));
+app.use(express.urlencoded({limit : "40kb", extended: true}));
 
-// socket connection
-io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
-});
-
-// routes
-app.get("/home", (req, res) => {
-  res.json({ hello: "World" });
-});
-
-// start server
 const start = async () => {
-  try {
-    // MongoDB (optional for now)
-    // await mongoose.connect(process.env.MONGO_URI);
-
-    httpServer.listen(8000, () => {
-      console.log("🚀 Server running on port 8000");
-    });
-  } catch (error) {
-    console.error(error);
-  }
+  // fixed password encoding (@ → %40)
+  const connectionDb = await mongoose.connect(
+    "mongodb+srv://rushikesh_db:Rushi%402004@cluster0.j76oagw.mongodb.net/mydb"
+  );
+  console.log(`Mongo Connected DB Host : ${connectionDb.connection.host}`)
+  server.listen(app.get("port"), () => {
+    console.log("Listening on Port 8000");
+  });
 };
 
 start();
-
